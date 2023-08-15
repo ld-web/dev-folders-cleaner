@@ -1,0 +1,106 @@
+# Trait objects
+
+[Trait objects](https://doc.rust-lang.org/book/ch17-02-trait-objects.html) in Rust look like a way to achieve a polymorphic behaviour without having full OOP features in the language.
+
+I wanted to explore this direction, since I _felt_ there was something interesting to do by defining some general methods for a `Project` maybe, and then write every implementation of `Project`.
+
+## Generics or trait objects ?
+
+I already tried with generics but didn't really got somewhere.
+
+The difference between generics and trait objects is mostly **static** vs **dynamic** dispatch.
+
+## Generics - Static dispatch
+
+With generics, you have **static** dispatch : during compile-time, Rust looks through your code, and for a given generic function, it's able to determine which _version_ of this function will be used during execution. it then uses **monomorphization** to generate the appropriate versions of this generic function (one for each type). That's why we talk about **zero-cost abstraction** when using generics in Rust.
+
+So I imagined, maybe designing something like that could work, and be elegant as well :
+
+```rust
+pub struct Project<T> {
+  pub path: PathBuf,
+  pub project_type: Vec<ProjectType>,
+}
+```
+
+And then, be able to create, as I wanted, `Project<Composer>` or `Project<Npm>`, maybe. But the compiler told me I had to use the generic type inside the struct...I finally found that I could "fake" the use of the generic type by using a `PhantomData` into the struct, kind of a marker indicating how to infer the type when used.
+
+But it didn't smell good. I'm learning, and if I start using things to "fake" data, I don't like it. I'd rather try another method.
+
+So, let's try the trait objects.
+
+## Trait objects - Dynamic dispatch
+
+With trait objects, we really have the same idea as polymorphism in OOP : you define a trait, and then specify that a parameter or a return type must be like `dyn MyTrait`, or even `Box<dyn MyTrait>`. The difference is that the compiler won't generate a specific version of the function for each concrete type implementing the trait. Instead, it will look at runtime which method it has to execute. From the documentation :
+
+> A trait object points to both an instance of a type implementing our specified trait and a table used to look up trait methods on that type at runtime
+
+:::info The Box Smart-pointer
+
+The [`Box`](https://doc.rust-lang.org/book/ch15-01-box.html) smart-pointer allows us to point to data on the heap rather than the stack.
+
+One of the scenario where we can use it, from the documentation, is "When you want to own a value and **you care only that it’s a type that implements a particular trait** rather than being of a specific type".
+
+:::
+
+So what if our `Project` just became a contract, a trait ?
+
+```rust
+pub trait Project: erased_serde::Serialize {
+    fn get_folders() -> Vec<ProjectDir>
+    where
+        Self: Sized;
+    fn get_variants() -> Option<Vec<ProjectVariant>>
+    where
+        Self: Sized;
+    fn get_infos(&self) -> &ProjectInfos;
+}
+```
+
+Here, to make a simple trait, I defined three methods : one to get the folders (build, dependencies, cache, etc...different types), another to get the variants of a project (let's say we have a Composer project, maybe one variant would be Symfony, another Laravel, etc...same for NPM with NextJS, GatsbyJS, Remix, React, Angular, and all of the billions libs/frameworks out there), and a last one to get the project's infos (the path, and maybe type).
+
+About the infos, I couldn't think of another way to do that because we can't define properties in traits...so I kind of had to define this "getter" to the project's info and then use composition to have informations in every `struct`. Not bad, but not very good.
+
+Finally, the `erased_serde::Serialize` thing was here just to make anything implementing this trait serializable (at least I think), and the `where` clauses are here because of [**object safety**](https://doc.rust-lang.org/reference/items/traits.html#object-safety) : basically, non-methods (without `self` in parameters) cannot be dispatched.
+
+That's already a lot, and I start to feel it's not that good.
+
+Then, I defined two modules : `composer` and `npm`, each defining their own `struct` and providing an implementation of `Project`. Here is an example with the `composer` module :
+
+```rust
+use crate::project::ProjectDirType;
+
+use super::{Project, ProjectDir, ProjectInfos, ProjectVariant};
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct Composer {
+    pub infos: ProjectInfos,
+}
+
+impl Project for Composer {
+    fn get_folders() -> Vec<ProjectDir> {
+        vec![ProjectDir {
+            name: String::from("vendor"),
+            dir_type: ProjectDirType::Dependencies,
+        }]
+    }
+
+    fn get_infos(&self) -> &ProjectInfos {
+        &self.infos
+    }
+
+    fn get_variants() -> Option<Vec<ProjectVariant>> {
+        Some(vec![ProjectVariant {
+            name: String::from("Symfony"),
+            dirs: vec![ProjectDir {
+                name: String::from("var/cache"),
+                dir_type: ProjectDirType::Cache,
+            }],
+        }])
+    }
+}
+```
+
+Finally, I was able to make all of this work, but it resulted in much more code than I imagined. Even though the file separation looked better (at least for me), I wasn't satisfied : it's definitely too heavy for what I need.
+
+So, let's go back to something more simple. Maybe at this point I'm starting to understand why Kondo did this way. At least I learned some new knowledge about the language during this research, so it's fine.
