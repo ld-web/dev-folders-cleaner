@@ -1,0 +1,393 @@
+# Read folders, identify projects
+
+The first topic was how to read folders contents.
+
+Ideally, this is what I would want to achieve, in order :
+
+- Read home folder content
+- Read home folder content recursively
+- Identify the type of a folder's project
+- Make user able to set the folders to analyse, and analyse them recursively
+- Make user able to set ignored folders
+
+## Read folder content
+
+So we would like to read folders contents and pass them to the UI. To do that we can define a Rust function and make it a [Tauri command](https://tauri.app/v1/guides/getting-started/setup/vite#invoke-commands).
+
+So let's work on the Rust part.
+
+By using the File System module from the standard library, we can read the contents of a directory :
+
+```rust title="src-tauri/src/lib.rs"
+use std::fs;
+
+pub fn list_content(folder_path: &str) -> Result<Vec<String>, Error> {
+    let content = fs::read_dir(folder_path)?
+        .filter_map(|e| e.ok())
+        .map(|entry| entry.path().to_string_lossy().to_string())
+        .collect();
+
+    Ok(content)
+}
+```
+
+Then we expose a simple command, just to start, in the main file :
+
+```rust title="src-tauri/src/main.rs"
+use app::{list_content, Error};
+use dirs::home_dir;
+
+#[tauri::command]
+fn list_home_content() -> Result<Vec<String>, Error> {
+    let home_binding = home_dir().expect("Could not get your home directory");
+    let home = home_binding.as_path().to_str().unwrap();
+
+    list_content(home)
+}
+```
+
+We use the [`dirs`](https://crates.io/crates/dirs) crate to retrieve the home directory. It works on Linux, MacOS and Windows platforms.
+
+To handle errors, I followed the [Tauri documentation](https://tauri.app/v1/guides/features/command/#error-handling), as it helps having a more concise and clear code.
+
+### What is Kondo's way ?
+
+Kondo made use of a crate called [`walkdir`](https://docs.rs/walkdir/latest/walkdir/) :
+
+```rust title="kondo-lib/src/lib.rs"
+fn build_walkdir_iter<P: AsRef<path::Path>>(path: &P, options: &ScanOptions) -> ProjectIter {
+    ProjectIter {
+        it: walkdir::WalkDir::new(path)
+            .follow_links(options.follow_symlinks)
+            .same_file_system(options.same_file_system)
+            .into_iter(),
+    }
+}
+```
+
+This crate is actually much more useful. It automatically builds an iterator based on a directory, but can also avoid following symbolic links, and avoid infinite loops.
+
+You can also ignore hidden directories (starting with '.'). Hidden directories can be useful once we've identified a project and want to explore which kind of artifacts it holds (`.docusaurus`, `.cache`, `.next`, etc...). But for just exploring filesystem, we don't need that.
+
+## Kondo's project identification
+
+For **each** explored folder, we have to determine if it is a project, and then figure out which kind of project it is. To do so, we have to guess the type of project based on the main configuration file it holds. For Rust projects, it's a `Cargo.toml` file, for JS based apps, `package.json`, PHP/Composer will be `composer.json`, etc...
+
+### The `Project` struct
+
+This is something we can probably think of later, but we can look at the `Project` struct of Kondo :
+
+```rust title="kondo-lib/src/lib.rs"
+#[derive(Debug, Clone)]
+pub struct Project {
+    pub project_type: ProjectType,
+    pub path: path::PathBuf,
+}
+```
+
+Basically, it only holds the project's type and the path. `ProjectType` is an enum, and it looks like a good idea to have a centralized declaration of all the types the app supports :
+
+```rust
+#[derive(Debug, Clone)]
+pub enum ProjectType {
+    Cargo,
+    Node,
+    Unity,
+    Stack,
+    #[allow(clippy::upper_case_acronyms)]
+    SBT,
+    Maven,
+    Gradle,
+    CMake,
+    Unreal,
+    Jupyter,
+    Python,
+    Composer,
+    Pub,
+    Elixir,
+    Swift,
+    Zig,
+}
+```
+
+For now I haven't thought precisely about the Project struct I would want.
+
+### The `discover` function
+
+If we look at how Kondo did to identify the projects into a starting directory, we find the `discover` function in the main file :
+
+```rust title="kondo/src/main.rs"
+fn discover(
+    dirs: Vec<PathBuf>,
+    scan_options: &ScanOptions,
+    project_min_age: u64,
+    result_sender: SyncSender<DiscoverData>,
+    ignored_dirs: &[PathBuf],
+) {
+    for project in dirs
+        .iter()
+        .flat_map(|dir| scan(dir, scan_options))
+        .filter_map(|p| p.ok())
+        .filter(|p| ignored_dirs.iter().all(|i| !p.path.starts_with(i)))
+    {
+      //...
+    }
+}
+```
+
+At first it may be a little difficult to identify _how_ we transition from the directories to the `Project`.
+
+### From `dirs` to `project`
+
+It starts from a `Vec<PathBuf>` which, I guess, represents the directories paths to explore, and pass them into a `scan` function, which is located in kond's lib :
+
+```rust title=""
+pub fn scan<P: AsRef<path::Path>>(
+    path: &P,
+    options: &ScanOptions,
+) -> impl Iterator<Item = Result<Project, Red>> {
+    build_walkdir_iter(path, options)
+}
+```
+
+:::info Path/PathBuf/AsRef
+
+It looks like `Path` and `PathBuf` are pretty similar in Rust, `PathBuf` being the mutable version of a path (offering methods like `push`, for instance).
+
+But a `Path` is immutable and doesn't **own** the path string data, only holds a reference of it. People seem to say it's [akin to `String` and `str`](https://doc.rust-lang.org/stable/std/path/index.html).
+
+Then, `AsRef` is a conversion trait allowing to convert from a reference to another. So `scan` is waiting for a `&P` generic type for the `path` argument. Then, `P` is declared as implementing a `AsRef<path::Path>`, meaning it has to be a type that can be converted into a reference to `Path`.
+
+`PathBuf` implements it, so we can pass it as a `Path` reference since it's automatically converted.
+
+:::
+
+The `scan` signature then indicates the return type will implement the `Iterator` trait, the item being a `Result<Project, Red>`. Ok, getting closer to how we go from a directory and end up with a potential project.
+
+But we have to look into this `build_walkdir_iter` function first :
+
+```rust
+fn build_walkdir_iter<P: AsRef<path::Path>>(path: &P, options: &ScanOptions) -> ProjectIter {
+    ProjectIter {
+        it: walkdir::WalkDir::new(path)
+            .follow_links(options.follow_symlinks)
+            .same_file_system(options.same_file_system)
+            .into_iter(),
+    }
+}
+```
+
+So it uses `walkdir` to create an iterator over the directories, but then wraps it into a `ProjectIter` struct ! Let's explore it :
+
+```rust
+struct ProjectIter {
+    it: walkdir::IntoIter,
+}
+```
+
+Not that much of information about `Project`...but let's remember, the `scan` return type was `Iterator<Item = Result<Project, Red>>`, `Red` being just a small error utility enum.
+
+From the [std documentation](https://doc.rust-lang.org/std/iter/trait.Iterator.html#required-methods), `Iterator` has one **required** method : `next`.
+
+So let's find it for the `ProjectIter` struct :
+
+```rust
+impl Iterator for ProjectIter {
+    type Item = Result<Project, Red>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let entry: walkdir::DirEntry = match self.it.next() {
+                None => return None,
+                Some(Err(e)) => return Some(Err(Red::WalkdirError(e))),
+                Some(Ok(entry)) => entry,
+            };
+            if !entry.file_type().is_dir() {
+                continue;
+            }
+            if is_hidden(&entry) {
+                self.it.skip_current_dir();
+                continue;
+            }
+            let rd = match entry.path().read_dir() {
+                Err(e) => return Some(Err(Red::IOError(e))),
+                Ok(rd) => rd,
+            };
+            // intentionally ignoring errors while iterating the ReadDir
+            // can't return them because we'll lose the context of where we are
+            for dir_entry in rd
+                .filter_map(|rd| rd.ok())
+                .filter(|de| de.file_type().map(|ft| ft.is_file()).unwrap_or(false))
+                .map(|de| de.file_name())
+            {
+                let file_name = match dir_entry.to_str() {
+                    None => continue,
+                    Some(file_name) => file_name,
+                };
+                let p_type = match file_name {
+                    FILE_CARGO_TOML => Some(ProjectType::Cargo),
+                    FILE_PACKAGE_JSON => Some(ProjectType::Node),
+                    FILE_ASSEMBLY_CSHARP => Some(ProjectType::Unity),
+                    FILE_STACK_HASKELL => Some(ProjectType::Stack),
+                    FILE_SBT_BUILD => Some(ProjectType::SBT),
+                    FILE_MVN_BUILD => Some(ProjectType::Maven),
+                    FILE_CMAKE_BUILD => Some(ProjectType::CMake),
+                    FILE_COMPOSER_JSON => Some(ProjectType::Composer),
+                    FILE_PUBSPEC_YAML => Some(ProjectType::Pub),
+                    FILE_ELIXIR_MIX => Some(ProjectType::Elixir),
+                    FILE_SWIFT_PACKAGE => Some(ProjectType::Swift),
+                    FILE_BUILD_GRADLE => Some(ProjectType::Gradle),
+                    FILE_BUILD_GRADLE_KTS => Some(ProjectType::Gradle),
+                    FILE_BUILD_ZIG => Some(ProjectType::Zig),
+                    file_name if file_name.ends_with(FILE_UNREAL_SUFFIX) => {
+                        Some(ProjectType::Unreal)
+                    }
+                    file_name if file_name.ends_with(FILE_JUPYTER_SUFFIX) => {
+                        Some(ProjectType::Jupyter)
+                    }
+                    file_name if file_name.ends_with(FILE_PYTHON_SUFFIX) => {
+                        Some(ProjectType::Python)
+                    }
+                    _ => None,
+                };
+                if let Some(project_type) = p_type {
+                    self.it.skip_current_dir();
+                    return Some(Ok(Project {
+                        project_type,
+                        path: entry.path().to_path_buf(),
+                    }));
+                }
+            }
+        }
+    }
+}
+```
+
+So, everything about recognizing a `Project` is here (as far as we know, at least). `ProjectIter` loops on its inner `it`, which is the `walkdir` iterator, and then sees if there is any error loading it, if it's a file instead of a directory, etc...and then takes all the content and identifies the project's type based on file names.
+
+### Back to `discover` function
+
+So, in the main `discover` function, that's how we got all the projects only from directories :
+
+```rust title="src/main.rs"
+for project in dirs
+        .iter()
+        .flat_map(|dir| scan(dir, scan_options))
+        .filter_map(|p| p.ok())
+        .filter(|p| ignored_dirs.iter().all(|i| !p.path.starts_with(i)))
+{
+  //...
+}
+```
+
+The `scan` function actually does all the job through the `Iterator` implementation of `ProjectIter`.
+
+## WalkDir use
+
+So finally I decided to use WalkDir to read a directory. This way it's more convenient to avoid following symbolic links and hidden files :
+
+```rust title="src-tauri/src/lib.rs"
+pub fn list_content(folder_path: &str) -> Result<Vec<String>, Error> {
+    let walker = WalkDir::new(folder_path).follow_links(false).into_iter();
+
+    let content: Vec<_> = walker
+        .filter_entry(|e| !is_hidden(e))
+        .filter_map(|e| e.ok())
+        .map(|e| e.path().as_os_str().to_string_lossy().to_string())
+        .collect();
+
+    Ok(content)
+}
+```
+
+Maybe I should make it a command, after all. The frontend could then use it as it wants, when it wants.
+
+:::note `Vec<_>`
+
+`Vec<_>` is used as a "type placeholder". Basically, it tells the compiler to infer the type of the vec elements.
+
+So if we look at the `collect()` part, which is just after the `map`, the compiler will see that it will collect `String`s. So for now, we're just collecting the names of directories, but in the future we would like to have `Project`s as output
+
+:::
+
+## Async Tauri command
+
+To begin simply, I'm just reading the directories starting from the home folder. We will see later how to generalize this.
+
+With `WalkDir` being recursive, it gives me about 1 million different folders/files starting from the `/home/xxxx` folder. That's a lot, and actually causes some freeze when launching the application.
+
+To be more specific, to test my Tauri command I put a simple `button` in the React app to launch it, asynchronously :
+
+```tsx
+import { invoke } from "@tauri-apps/api/tauri";
+
+function App() {
+  async function explore() {
+    console.log(await invoke("list_home_content"));
+  }
+
+  return (
+    <div className="px-2 py-6">
+      <h1 className="text-center text-6xl font-bold">DCleaner</h1>
+      <h2 className="max-w-sm text-center font-light text-slate-500 m-auto">
+        Clean your dependencies and cache folders
+      </h2>
+      <button
+        onClick={explore}
+        className="bg-sky-800 p-4 text-white disabled:opacity-20"
+        disabled={loading}
+      >
+        Explore home directory
+      </button>
+    </div>
+  );
+}
+```
+
+So when I click the button, the application freezes for maybe 6 to 8 seconds. That's not good.
+
+To resolve that, we can simply [make the command `async`](https://tauri.app/v1/guides/features/command/#async-commands).
+
+From the Rust documentation :
+
+> Asynchronous functions are benefical in Tauri to perform heavy work in a manner that doesn't result in UI freezes or slowdowns
+
+And also :
+
+> Async commands are executed on a separate thread using async_runtime::spawn.
+
+As a result, the UI is not freezed anymore. But I can also introduce a state variable in the React component to indicate that the command is in loading progress.
+
+```tsx
+import { invoke } from "@tauri-apps/api/tauri";
+import { useState } from "react";
+
+function App() {
+  const [loading, setLoading] = useState(false);
+
+  async function explore() {
+    setLoading(true);
+    console.log(await invoke("list_home_content"));
+    setLoading(false);
+  }
+
+  return (
+    <div className="px-2 py-6">
+      <h1 className="text-center text-6xl font-bold">DCleaner</h1>
+      <h2 className="max-w-sm text-center font-light text-slate-500 m-auto">
+        Clean your dependencies and cache folders
+      </h2>
+      <button
+        onClick={explore}
+        className="bg-sky-800 p-4 text-white disabled:opacity-20"
+        disabled={loading}
+      >
+        Explore home directory
+      </button>
+      {loading && <p>Loading...</p>}
+    </div>
+  );
+}
+```
+
+That's not bad, but still needs a lot of work on the frontend part. Well, next step is more about correctly identifying a project from the backend, and be able to properly serialize it and pass it to the frontend. So it will wait for now...
