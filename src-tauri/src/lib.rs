@@ -18,7 +18,7 @@ impl serde::Serialize for Error {
     }
 }
 
-pub fn list_projects(folder_path: &str) -> Result<Vec<Box<dyn Project>>, Error> {
+pub fn list_projects(folder_path: &str) -> Result<Vec<Project>, Error> {
     let walker = ignore::WalkBuilder::new(folder_path)
         .require_git(false)
         .build();

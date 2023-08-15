@@ -5,7 +5,7 @@ use app::{list_projects, project::Project, Error};
 use dirs::home_dir;
 
 #[tauri::command]
-async fn get_home_projects() -> Result<Vec<Box<dyn Project>>, Error> {
+async fn get_home_projects() -> Result<Vec<Project>, Error> {
     let home_binding = home_dir().expect("Could not get your home directory");
     let home = home_binding.as_path().to_str().unwrap();
 

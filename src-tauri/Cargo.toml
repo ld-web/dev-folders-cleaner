@@ -23,7 +23,6 @@ walkdir = "2.3.3"
 thiserror = "1.0.41"
 dirs = "5.0.1"
 ignore = "0.4.20"
-erased-serde = "0.3.28"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.
