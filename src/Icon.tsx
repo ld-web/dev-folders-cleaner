@@ -9,7 +9,11 @@ const Icon = ({
   const badge = badges.get(project_type);
 
   if (badge === undefined) {
-    return <span>{project_type}</span>;
+    return (
+      <span className="p-1 border-2 border-gray-400 text-sm">
+        {project_type}
+      </span>
+    );
   }
 
   return (
