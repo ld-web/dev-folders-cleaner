@@ -49,6 +49,7 @@ fn get_project_base_type(file_name: &str) -> Option<ProjectBaseType> {
     match file_name {
         "composer.json" => Some(ProjectBaseType::Composer),
         "package.json" => Some(ProjectBaseType::NPM),
+        "Cargo.toml" => Some(ProjectBaseType::Cargo),
         _ => None,
     }
 }

@@ -9,6 +9,10 @@ interface Badge {
 const badges = new Map<ProjectBaseType | ProjectVariant, Badge>();
 
 badges
+  .set(ProjectBaseType.Cargo, {
+    svg: "rust-%23000000.svg",
+    logo: "rust",
+  })
   .set(ProjectBaseType.NPM, {
     svg: "NPM-%23CB3837.svg",
     logo: "npm",

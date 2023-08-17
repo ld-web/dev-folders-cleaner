@@ -17,5 +17,5 @@ export enum ProjectVariant {
 export type Project = {
   base_type: ProjectBaseType;
   path: string;
-  variants: ProjectVariant[];
+  variants?: ProjectVariant[];
 };
