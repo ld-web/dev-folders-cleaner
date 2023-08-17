@@ -10,6 +10,7 @@ function App() {
   async function explore() {
     setLoading(true);
     const projects = (await invoke("get_home_projects")) as Project[];
+    console.log(projects);
     setProjects(projects);
     setLoading(false);
   }

@@ -1,4 +1,4 @@
-use crate::utils::{get_content, ContentType};
+use crate::utils::{dir_size, get_content, ContentType};
 use ignore::DirEntry;
 use std::path::PathBuf;
 
@@ -25,6 +25,7 @@ pub struct Project {
     pub path: PathBuf,
     pub base_type: ProjectBaseType,
     pub variants: Option<Vec<ProjectVariant>>,
+    pub size: u64,
 }
 
 /// Analyse a directory and find out if it's a project or not
@@ -35,6 +36,7 @@ pub fn get_project(dir: DirEntry) -> Option<Project> {
                 path: dir.path().to_path_buf(),
                 base_type: project_base_type,
                 variants: search_variants(&dir, project_base_type),
+                size: dir_size(&dir),
             });
         } else {
             continue;

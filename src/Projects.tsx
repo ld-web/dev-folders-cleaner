@@ -1,3 +1,4 @@
+import byteSize from "byte-size";
 import Icon from "./Icon";
 import { Project } from "./types";
 
@@ -14,11 +15,14 @@ const Projects = ({ data }: ProjectsProps) => (
         key={project.path}
         className="p-6 border-[1px] border-gray-400 shadow w-[380px]"
       >
-        <div className="flex items-center gap-x-1 mb-3">
-          <Icon project_type={project.base_type} />
-          {project.variants?.map((variant) => (
-            <Icon project_type={variant} key={project.path + variant} />
-          ))}
+        <div className="flex justify-between items-center mb-3">
+          <div className="flex gap-1">
+            <Icon project_type={project.base_type} />
+            {project.variants?.map((variant) => (
+              <Icon project_type={variant} key={project.path + variant} />
+            ))}
+          </div>
+          <div>{`${byteSize(project.size)}`}</div>
         </div>
         <h3 className="text-xl break-words">{shorten(project.path)}</h3>
       </div>

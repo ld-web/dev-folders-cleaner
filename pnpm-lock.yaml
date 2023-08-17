@@ -11,6 +11,9 @@ dependencies:
   '@tauri-apps/api':
     specifier: ^1.4.0
     version: 1.4.0
+  byte-size:
+    specifier: ^8.1.1
+    version: 8.1.1
   react:
     specifier: ^18.2.0
     version: 18.2.0
@@ -22,6 +25,9 @@ devDependencies:
   '@tauri-apps/cli':
     specifier: ^1.4.0
     version: 1.4.0
+  '@types/byte-size':
+    specifier: ^8.1.0
+    version: 8.1.0
   '@types/node':
     specifier: ^18.7.10
     version: 18.7.10
@@ -659,6 +665,10 @@ packages:
       '@tauri-apps/cli-win32-x64-msvc': 1.4.0
     dev: true
 
+  /@types/byte-size@8.1.0:
+    resolution: {integrity: sha512-LCIlZh8vyx+I2fgRycE1D34c33QDppYY6quBYYoaOpQ1nGhJ/avSP2VlrAefVotjJxgSk6WkKo0rTcCJwGG7vA==}
+    dev: true
+
   /@types/node@18.7.10:
     resolution: {integrity: sha512-SST7B//wF7xlGoLo1IEVB0cQ4e7BgXlDk5IaPgb5s0DlYLjb4if07h8+0zbQIvahfPNXs6e7zyT0EH1MqaS+5g==}
     dev: true
@@ -773,6 +783,11 @@ packages:
       node-releases: 2.0.12
       update-browserslist-db: 1.0.11(browserslist@4.21.9)
     dev: true
+
+  /byte-size@8.1.1:
+    resolution: {integrity: sha512-tUkzZWK0M/qdoLEqikxBWe4kumyuwjl3HO6zHTr4yEI23EojPtLYXdG1+AQY7MN0cGyNDvEaJ8wiYQm6P2bPxg==}
+    engines: {node: '>=12.17'}
+    dev: false
 
   /camelcase-css@2.0.1:
     resolution: {integrity: sha512-QOSvevhslijgYwRx6Rv7zKdMF8lbRmx+uQGx2+vDc+KI/eBnsy9kit5aj23AgGu3pa4t9AgwbnXWqS+iOY+2aA==}

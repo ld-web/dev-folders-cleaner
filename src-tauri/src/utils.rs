@@ -31,3 +31,14 @@ pub fn get_content(
             .filter_map(|de| de.file_name().into_string().ok()),
     )
 }
+
+pub fn dir_size(dir: &DirEntry) -> u64 {
+    walkdir::WalkDir::new(dir.path())
+        .follow_links(true)
+        .same_file_system(true)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter_map(|e| e.metadata().ok())
+        .map(|e| e.len())
+        .sum()
+}
