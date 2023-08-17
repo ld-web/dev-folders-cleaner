@@ -11,9 +11,13 @@ pub enum ProjectBaseType {
 
 #[derive(Debug, serde::Serialize)]
 pub enum ProjectVariant {
+    // Composer
     Symfony,
+    // NPM
     NextJS,
     Docusaurus,
+    Angular,
+    Gatsby,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -75,11 +79,17 @@ fn search_npm_variants(content: impl Iterator<Item = String>) -> Option<Vec<Proj
     let mut variants = vec![];
 
     for file_name in content {
-        if file_name.eq("next.config.js") {
+        if file_name.starts_with("next.config.") {
             variants.push(ProjectVariant::NextJS);
         }
-        if file_name.eq("docusaurus.config.js") {
+        if file_name.starts_with("docusaurus.config.") {
             variants.push(ProjectVariant::Docusaurus);
+        }
+        if file_name.eq("angular.json") {
+            variants.push(ProjectVariant::Angular);
+        }
+        if file_name.starts_with("gatsby-config.") {
+            variants.push(ProjectVariant::Gatsby);
         }
     }
 
