@@ -1,12 +1,16 @@
 import { invoke } from "@tauri-apps/api/tauri";
 import { useState } from "react";
+import Projects from "./Projects";
+import { Project } from "./types";
 
 function App() {
   const [loading, setLoading] = useState(false);
+  const [projects, setProjects] = useState<Project[] | null>(null);
 
   async function explore() {
     setLoading(true);
-    console.log(await invoke("get_home_projects"));
+    const projects = (await invoke("get_home_projects")) as Project[];
+    setProjects(projects);
     setLoading(false);
   }
 
@@ -24,6 +28,7 @@ function App() {
         Explore home directory
       </button>
       {loading && <p>Loading...</p>}
+      {projects && <Projects data={projects} />}
     </div>
   );
 }
