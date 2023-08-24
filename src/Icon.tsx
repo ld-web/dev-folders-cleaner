@@ -10,7 +10,7 @@ const Icon = ({
 
   if (badge === undefined) {
     return (
-      <span className="p-1 border-2 border-gray-400 text-sm">
+      <span className="p-1 bg-slate-700 text-white text-xs">
         {project_type}
       </span>
     );

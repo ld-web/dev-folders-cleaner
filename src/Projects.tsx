@@ -22,7 +22,9 @@ const Projects = ({ data }: ProjectsProps) => (
               <Icon project_type={variant} key={project.path + variant} />
             ))}
           </div>
-          <div>{`${byteSize(project.size)}`}</div>
+          <div className="text-sm bg-indigo-700 px-2 py-1 text-white">{`${byteSize(
+            project.size
+          )}`}</div>
         </div>
         <h3 className="text-xl break-words">{shorten(project.path)}</h3>
       </div>
