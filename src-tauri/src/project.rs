@@ -35,7 +35,7 @@ pub fn get_project(dir: DirEntry) -> Option<Project> {
             return Some(Project {
                 path: dir.path().to_path_buf(),
                 base_type: project_base_type,
-                variants: search_variants(&dir, project_base_type),
+                variants: get_variants(&dir, project_base_type),
                 size: dir_size(&dir),
             });
         } else {
@@ -56,17 +56,17 @@ fn get_project_base_type(file_name: &str) -> Option<ProjectBaseType> {
     }
 }
 
-fn search_variants(dir: &DirEntry, base_type: ProjectBaseType) -> Option<Vec<ProjectVariant>> {
+fn get_variants(dir: &DirEntry, base_type: ProjectBaseType) -> Option<Vec<ProjectVariant>> {
     let content = get_content(dir, ContentType::All)?;
 
     match base_type {
-        ProjectBaseType::Composer => search_composer_variants(content),
-        ProjectBaseType::NPM => search_npm_variants(content),
+        ProjectBaseType::Composer => get_composer_variants(content),
+        ProjectBaseType::NPM => get_npm_variants(content),
         _ => None,
     }
 }
 
-fn search_composer_variants(content: impl Iterator<Item = String>) -> Option<Vec<ProjectVariant>> {
+fn get_composer_variants(content: impl Iterator<Item = String>) -> Option<Vec<ProjectVariant>> {
     let mut variants = vec![];
 
     for file_name in content {
@@ -78,7 +78,7 @@ fn search_composer_variants(content: impl Iterator<Item = String>) -> Option<Vec
     Some(variants)
 }
 
-fn search_npm_variants(content: impl Iterator<Item = String>) -> Option<Vec<ProjectVariant>> {
+fn get_npm_variants(content: impl Iterator<Item = String>) -> Option<Vec<ProjectVariant>> {
     let mut variants = vec![];
 
     for file_name in content {
