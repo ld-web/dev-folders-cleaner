@@ -141,7 +141,7 @@ At first it may be a little difficult to identify _how_ we transition from the d
 
 It starts from a `Vec<PathBuf>` which, I guess, represents the directories paths to explore, and pass them into a `scan` function, which is located in kond's lib :
 
-```rust title=""
+```rust title="kondo/src/lib.rs"
 pub fn scan<P: AsRef<path::Path>>(
     path: &P,
     options: &ScanOptions,
@@ -154,7 +154,7 @@ pub fn scan<P: AsRef<path::Path>>(
 
 It looks like `Path` and `PathBuf` are pretty similar in Rust, `PathBuf` being the mutable version of a path (offering methods like `push`, for instance).
 
-But a `Path` is immutable and doesn't **own** the path string data, only holds a reference of it. People seem to say it's [akin to `String` and `str`](https://doc.rust-lang.org/stable/std/path/index.html).
+But a `Path` is immutable and doesn't **own** the path string data, only holds a reference to it. Documentation even seems to say it's [akin to `String` and `str`](https://doc.rust-lang.org/stable/std/path/index.html).
 
 Then, `AsRef` is a conversion trait allowing to convert from a reference to another. So `scan` is waiting for a `&P` generic type for the `path` argument. Then, `P` is declared as implementing a `AsRef<path::Path>`, meaning it has to be a type that can be converted into a reference to `Path`.
 
@@ -348,7 +348,7 @@ So when I click the button, the application freezes for maybe 6 to 8 seconds. Th
 
 To resolve that, we can simply [make the command `async`](https://tauri.app/v1/guides/features/command/#async-commands).
 
-From the Rust documentation :
+From the Tauri documentation :
 
 > Asynchronous functions are benefical in Tauri to perform heavy work in a manner that doesn't result in UI freezes or slowdowns
 

@@ -1,0 +1,158 @@
+# Going back
+
+So, after all these hours looking at interesting features and ways to write this, I feel it's time to write more "direct" and simple code.
+
+Also, I realized that maybe I was trying to make an OOP approach fit into another language that doesn't have OOP. So maybe there is a way to implement all of this using more elaborate/complex code, but I'm learning, so I decided to get rid of all of this and try another implementation.
+
+## The `Project` struct
+
+Let's keep it simple : what do I want in a `Project` ? Its path, its "base" type (Npm, Composer, Cargo...), its "variants" (for NPM, Gatsby, NextJS, Angular, etc...for Composer, Symfony, Laravel, etc...), and its size :
+
+```rust title="src-tauri/src/project.rs"
+#[derive(Debug, Clone, Copy, serde::Serialize)]
+pub enum ProjectBaseType {
+    Cargo,
+    Composer,
+    NPM,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub enum ProjectVariant {
+    // Composer
+    Symfony,
+    // NPM
+    NextJS,
+    Docusaurus,
+    Angular,
+    Gatsby,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct Project {
+    pub path: PathBuf,
+    pub base_type: ProjectBaseType,
+    pub variants: Option<Vec<ProjectVariant>>,
+    pub size: u64,
+}
+```
+
+A project might not have any variants, so I made it an `Option` type : either it's a `Vec<ProjectVariant>` (as it could be, I don't know, NPM + React/NextJS/Tailwind maybe in the future ?), or just `None` : no variants found.
+
+## List the projects
+
+To list the projects, I defined a function taking one parameter : the root path to explore from. Then I build a `Vec<Project>` starting from this root path. Still using `ignore` to avoid exploring unnecessary directories and ignore files found in `.gitignore` file :
+
+```rust title="src-tauri/src/lib.rs"
+pub fn list_projects(folder_path: &str) -> Result<Vec<Project>, Error> {
+    let walker = ignore::WalkBuilder::new(folder_path)
+        .require_git(false)
+        .build();
+
+    let projects: Vec<_> = walker
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().is_dir())
+        .filter_map(get_project)
+        .collect();
+
+    Ok(projects)
+}
+```
+
+## Get a project
+
+When I have all the directories, I `filter_map` them into `get_project`.
+
+`get_project` looks into a given directory to see if it is a project. It returns an `Option<Project>`, so if it isn't a project, it will just be `None`.
+
+`filter_map`, from the documentation, builds an iterator : "The returned iterator yields only the values for which the supplied closure returns Some(value)". So in my resulting iterator I will only have `Project`s, everything returning `None` will be ignored. Fine.
+
+The `get_project` function :
+
+```rust title="src-tauri/src/project.rs"
+/// Analyse a directory and find out if it's a project or not
+pub fn get_project(dir: DirEntry) -> Option<Project> {
+    for file_name in get_content(&dir, ContentType::Files)? {
+        if let Some(project_base_type) = get_project_base_type(&file_name) {
+            return Some(Project {
+                path: dir.path().to_path_buf(),
+                base_type: project_base_type,
+                variants: get_variants(&dir, project_base_type),
+                size: dir_size(&dir),
+            });
+        } else {
+            continue;
+        }
+    }
+
+    None
+}
+```
+
+We have two different methods `get_project_base_type` for finding at least the general type of a project, and another one `get_variants`, which is more specific : it takes a directory and a base type, and tries to identify a variant from the base type :
+
+```rust title="src-tauri/src/project.rs"
+fn get_variants(dir: &DirEntry, base_type: ProjectBaseType) -> Option<Vec<ProjectVariant>> {
+    let content = get_content(dir, ContentType::All)?;
+
+    match base_type {
+        ProjectBaseType::Composer => get_composer_variants(content),
+        ProjectBaseType::NPM => get_npm_variants(content),
+        _ => None,
+    }
+}
+```
+
+The `get_content` function was made a bit more flexible : I added a `content_type` parameter to be able to target files only, or all type of content (files & directories). Right now I don't need directories only, so the resulting enum looks like this :
+
+```rust title="src-tauri/src/utils.rs"
+pub enum ContentType {
+    All,
+    Files,
+}
+
+pub fn get_content(
+    dir: &DirEntry,
+    content_type: ContentType,
+) -> Option<impl Iterator<Item = String>> {
+  // Look for contents according to the given content type
+}
+```
+
+As I said, I just want to be more "direct" and simple, so for now, before refactoring, I just define functions for each kind of project :
+
+```rust title="src-tauri/src/project.rs"
+fn get_composer_variants(content: impl Iterator<Item = String>) -> Option<Vec<ProjectVariant>> {
+    let mut variants = vec![];
+
+    for file_name in content {
+        if file_name.eq("symfony.lock") {
+            variants.push(ProjectVariant::Symfony);
+        }
+    }
+
+    Some(variants)
+}
+
+fn get_npm_variants(content: impl Iterator<Item = String>) -> Option<Vec<ProjectVariant>> {
+    let mut variants = vec![];
+
+    for file_name in content {
+        if file_name.starts_with("next.config.") {
+            variants.push(ProjectVariant::NextJS);
+        }
+        if file_name.starts_with("docusaurus.config.") {
+            variants.push(ProjectVariant::Docusaurus);
+        }
+        if file_name.eq("angular.json") {
+            variants.push(ProjectVariant::Angular);
+        }
+        if file_name.starts_with("gatsby-config.") {
+            variants.push(ProjectVariant::Gatsby);
+        }
+    }
+
+    Some(variants)
+}
+```
+
+It's obvious for me that I can make that evolve to `[&str]` in the future, or maybe [HashMap](https://doc.rust-lang.org/stable/std/collections/struct.HashMap.html) ? But for now, I just want to get my variants and give them to the UI. Let's keep this v1 for the moment.
