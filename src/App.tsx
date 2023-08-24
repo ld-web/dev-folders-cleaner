@@ -8,6 +8,7 @@ function App() {
   const [projects, setProjects] = useState<Project[] | null>(null);
 
   async function explore() {
+    setProjects(null);
     setLoading(true);
     const projects = (await invoke("get_home_projects")) as Project[];
     console.log(projects);
@@ -28,8 +29,7 @@ function App() {
       >
         Explore home directory
       </button>
-      {loading && <p>Loading...</p>}
-      {projects && <Projects data={projects} />}
+      <Projects data={projects} loading={loading} />
     </div>
   );
 }
