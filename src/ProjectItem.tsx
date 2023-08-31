@@ -10,7 +10,7 @@ interface ProjectProps {
 const shorten = (path: string) => path.substring(path.lastIndexOf("/") + 1);
 
 const ProjectItem = ({ project }: ProjectProps) => (
-  <div className="p-4 border-[1px] border-gray-400 shadow w-[380px]">
+  <div className="p-4 border-[1px] border-gray-400 shadow w-[380px] flex flex-col justify-between">
     <div className="flex justify-between items-start gap-x-3">
       <h3 className="text-xl break-words max-w-[260px]">
         {shorten(project.path)}
@@ -27,7 +27,7 @@ const ProjectItem = ({ project }: ProjectProps) => (
         ))}
       </div>
     </div>
-    <div className="text-right">
+    <div className="flex justify-end items-end">
       <button className="text-white bg-red-600 p-2 rounded-full hover:bg-red-800">
         <Clean />
       </button>
