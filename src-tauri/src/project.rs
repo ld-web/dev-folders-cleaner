@@ -1,15 +1,15 @@
 use crate::utils::{dir_size, get_content, ContentType};
 use ignore::DirEntry;
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 
-#[derive(Debug, Clone, Copy, serde::Serialize)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub enum ProjectBaseType {
     Cargo,
     Composer,
     NPM,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum ProjectVariant {
     // Composer
     Symfony,
@@ -20,7 +20,7 @@ pub enum ProjectVariant {
     Gatsby,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Project {
     pub path: PathBuf,
     pub base_type: ProjectBaseType,
@@ -97,4 +97,24 @@ fn get_npm_variants(content: impl Iterator<Item = String>) -> Option<Vec<Project
     }
 
     Some(variants)
+}
+
+pub fn clean_project(project: Project) -> u64 {
+    let dirs = match project.base_type {
+        ProjectBaseType::Cargo => ["target"],
+        ProjectBaseType::Composer => ["vendor"],
+        ProjectBaseType::NPM => ["node_modules"],
+    };
+
+    for artifact_dir in dirs
+        .iter()
+        .copied()
+        .map(|ad| project.path.join(ad))
+        .filter(|ad| ad.exists())
+    {
+        if let Err(e) = fs::remove_dir_all(&artifact_dir) {
+            eprintln!("error removing directory {:?}: {:?}", artifact_dir, e);
+        }
+    }
+    0
 }
