@@ -22,13 +22,15 @@ function App() {
       <h2 className="max-w-sm text-center font-light text-slate-500 m-auto">
         Clean your dependencies and cache folders
       </h2>
-      <button
-        onClick={explore}
-        className="bg-sky-800 p-4 text-white disabled:opacity-20"
-        disabled={loading}
-      >
-        Explore home directory
-      </button>
+      <div className="text-center">
+        <button
+          onClick={explore}
+          className="bg-sky-800 p-4 text-white disabled:opacity-20"
+          disabled={loading}
+        >
+          Explore home directory
+        </button>
+      </div>
       <Projects data={projects} loading={loading} />
     </div>
   );
