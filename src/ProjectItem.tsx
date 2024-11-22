@@ -25,50 +25,86 @@ const ProjectItem = ({ project }: ProjectProps) => {
   };
 
   return (
-    <div className="p-4 border-[1px] border-gray-400 shadow w-[380px] flex flex-col justify-between">
-      <div className="flex justify-between items-start gap-x-3">
-        <h3 className="text-xl break-words max-w-[260px]">
-          {shorten(project.path)}
-        </h3>
-        <div className="text-sm bg-indigo-700 px-2 py-1 text-white whitespace-nowrap inline">{`${byteSize(
-          project.size
-        )}`}</div>
-      </div>
-      <div className="flex justify-between items-center mb-3">
-        <div className="flex gap-1">
-          <Icon project_type={project.base_type} />
-          {project.variants?.map((variant) => (
-            <Icon project_type={variant} key={project.path + variant} />
-          ))}
-        </div>
-      </div>
-      <div className="flex justify-end items-end">
-        {confirm && (
-          <div>
-            <span className="mr-4">Sure ?</span>
-            <button
-              className="text-white bg-green-600 p-2 rounded-full hover:bg-green-800 mr-2"
-              onClick={() => clean(project)}
-            >
-              <Check />
-            </button>
-            <button
-              className="text-white bg-red-600 p-2 rounded-full hover:bg-red-800"
-              onClick={() => setConfirm(false)}
-            >
-              <Cancel />
-            </button>
-          </div>
-        )}
+    <div className="relative group">
+      <div className="p-6 rounded-2xl bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 
+                    hover:bg-gray-900/70 transition-all duration-300 w-[380px]
+                    shadow-[0_8px_30px_rgb(0,0,0,0.3)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.4)]">
+        <div className="space-y-6">
+          {/* Enhanced Header Section for dark theme */}
+          <div className="space-y-4">
+            {/* Project Name with glowing accent */}
+            <div className="relative">
+              <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-1.5 h-12 
+                            bg-gradient-to-b from-indigo-400 to-indigo-600 rounded-full
+                            shadow-[0_0_15px_rgba(129,140,248,0.5)]" />
+              <h3 className="pl-2">
+                <span className="block text-xl font-semibold text-gray-100 leading-tight">
+                  {shorten(project.path)}
+                </span>
+                <span className="block text-sm font-medium text-gray-400 mt-1 truncate hover:text-clip group-hover:whitespace-normal transition-all duration-300" 
+                      title={project.path}>
+                  {project.path}
+                </span>
+              </h3>
+            </div>
 
-        {!confirm && (
-          <button
-            className="text-white bg-red-600 p-2 rounded-full hover:bg-red-800"
-            onClick={() => setConfirm(true)}
-          >
-            <Clean />
-          </button>
-        )}
+            {/* Stats and Icons Row */}
+            <div className="flex justify-between items-center">
+              <div className="flex gap-2 p-2 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                <Icon project_type={project.base_type} />
+                {project.variants?.map((variant) => (
+                  <Icon project_type={variant} key={project.path + variant} />
+                ))}
+              </div>
+              <div className="text-sm bg-indigo-500/20 border border-indigo-500/30 
+                            px-3.5 py-1.5 rounded-full text-indigo-300 font-medium
+                            shadow-[0_0_10px_rgba(129,140,248,0.2)]">
+                {`${byteSize(project.size)}`}
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons for dark theme */}
+          <div className="flex justify-end items-center">
+            {confirm ? (
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-300 font-medium">
+                  Confirm clean?
+                </span>
+                <button
+                  className="p-2 rounded-full text-emerald-300 hover:text-white
+                            bg-emerald-500/10 hover:bg-emerald-500 
+                            border border-emerald-500/30 hover:border-emerald-500
+                            transition-all duration-200"
+                  onClick={() => clean(project)}
+                >
+                  <Check />
+                </button>
+                <button
+                  className="p-2 rounded-full text-rose-300 hover:text-white
+                            bg-rose-500/10 hover:bg-rose-500
+                            border border-rose-500/30 hover:border-rose-500
+                            transition-all duration-200"
+                  onClick={() => setConfirm(false)}
+                >
+                  <Cancel />
+                </button>
+              </div>
+            ) : (
+              <button
+                className="p-2.5 rounded-full text-gray-300 hover:text-white
+                          bg-gray-700/50 hover:bg-rose-500/20 
+                          border border-gray-600 hover:border-rose-500/30
+                          transition-all duration-200
+                          focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:ring-offset-2
+                          focus:ring-offset-gray-800"
+                onClick={() => setConfirm(true)}
+              >
+                <Clean />
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
