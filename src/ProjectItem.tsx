@@ -15,6 +15,8 @@ const shorten = (path: string) => path.substring(path.lastIndexOf("/") + 1);
 
 const ProjectItem = ({ project }: ProjectProps) => {
   const [confirm, setConfirm] = useState(false);
+  const [isCleaned, setIsCleaned] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const clean = async (project: Project) => {
     const bytes_cleaned = (await invoke("clean_project", {
@@ -22,13 +24,35 @@ const ProjectItem = ({ project }: ProjectProps) => {
     })) as number;
     console.log("bytes_cleaned", bytes_cleaned);
     setConfirm(false);
+    setIsCleaned(true);
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000); // Hide success message after 3 seconds
   };
 
   return (
     <div className="relative group">
-      <div className="p-6 rounded-2xl bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 
+      {/* Success Message */}
+      {showSuccess && (
+        <div className="absolute -top-12 left-0 right-0 flex justify-center">
+          <div className="bg-emerald-500/90 text-white px-4 py-2 rounded-lg text-sm font-medium 
+                         shadow-lg animate-fade-in-down">
+            Project cleaned successfully!
+          </div>
+        </div>
+      )}
+      
+      <div className={`p-6 rounded-2xl bg-gray-900/50 backdrop-blur-sm border 
                     hover:bg-gray-900/70 transition-all duration-300 w-[380px]
-                    shadow-[0_8px_30px_rgb(0,0,0,0.3)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.4)]">
+                    shadow-[0_8px_30px_rgb(0,0,0,0.3)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+                    ${isCleaned ? 'border-emerald-500/30' : 'border-gray-700/50'}`}>
+        {/* Cleaned Indicator */}
+        {isCleaned && (
+          <div className="absolute -right-2 -top-2 bg-emerald-500 rounded-full p-1.5 
+                         shadow-[0_0_10px_rgba(16,185,129,0.5)]">
+            <Check className="w-3 h-3 text-white" />
+          </div>
+        )}
+        
         <div className="space-y-6">
           {/* Enhanced Header Section for dark theme */}
           <div className="space-y-4">
