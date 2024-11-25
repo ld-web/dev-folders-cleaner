@@ -13,10 +13,3 @@ export enum ProjectVariant {
   Angular = "Angular",
   Gatsby = "Gatsby",
 }
-
-export type Project = {
-  base_type: ProjectBaseType;
-  path: string;
-  variants?: ProjectVariant[];
-  size: number;
-};

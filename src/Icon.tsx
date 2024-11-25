@@ -1,5 +1,4 @@
 import { badges } from "./badges";
-import { ProjectBaseType, ProjectVariant } from "./types";
 
 const Icon = ({
   project_type,

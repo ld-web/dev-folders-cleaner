@@ -1,4 +1,3 @@
-import { Project } from "./types";
 import ProjectItem from "./ProjectItem";
 import ProjectSkeleton from "./ProjectSkeleton";
 

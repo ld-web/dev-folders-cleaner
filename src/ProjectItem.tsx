@@ -1,6 +1,5 @@
 import byteSize from "byte-size";
 import Icon from "./Icon";
-import { Project } from "./types";
 import Clean from "./Clean";
 import { useState } from "react";
 import Check from "./Check";
@@ -26,7 +25,7 @@ const ProjectItem = ({ project }: ProjectProps) => {
     setConfirm(false);
     setIsCleaned(true);
     setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000); // Hide success message after 3 seconds
+    setTimeout(() => setShowSuccess(false), 3000);
   };
 
   return (
@@ -34,39 +33,51 @@ const ProjectItem = ({ project }: ProjectProps) => {
       {/* Success Message */}
       {showSuccess && (
         <div className="absolute -top-12 left-0 right-0 flex justify-center">
-          <div className="bg-emerald-500/90 text-white px-4 py-2 rounded-lg text-sm font-medium 
-                         shadow-lg animate-fade-in-down">
+          <div
+            className="bg-emerald-500/90 text-white px-4 py-2 rounded-lg text-sm font-medium 
+                         shadow-lg animate-fade-in-down"
+          >
             Project cleaned successfully!
           </div>
         </div>
       )}
-      
-      <div className={`p-6 rounded-2xl bg-gray-900/50 backdrop-blur-sm border 
+
+      <div
+        className={`p-6 rounded-2xl bg-gray-900/50 backdrop-blur-sm border 
                     hover:bg-gray-900/70 transition-all duration-300 w-[380px]
                     shadow-[0_8px_30px_rgb(0,0,0,0.3)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-                    ${isCleaned ? 'border-emerald-500/30' : 'border-gray-700/50'}`}>
+                    ${
+                      isCleaned ? "border-emerald-500/30" : "border-gray-700/50"
+                    }`}
+      >
         {/* Cleaned Indicator */}
         {isCleaned && (
-          <div className="absolute -right-2 -top-2 bg-emerald-500 rounded-full p-1.5 
-                         shadow-[0_0_10px_rgba(16,185,129,0.5)]">
+          <div
+            className="absolute -right-2 -top-2 bg-emerald-500 rounded-full p-1.5 
+                         shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+          >
             <Check className="w-3 h-3 text-white" />
           </div>
         )}
-        
+
         <div className="space-y-6">
           {/* Enhanced Header Section for dark theme */}
           <div className="space-y-4">
             {/* Project Name with glowing accent */}
             <div className="relative">
-              <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-1.5 h-12 
+              <div
+                className="absolute -left-3 top-1/2 -translate-y-1/2 w-1.5 h-12 
                             bg-gradient-to-b from-indigo-400 to-indigo-600 rounded-full
-                            shadow-[0_0_15px_rgba(129,140,248,0.5)]" />
+                            shadow-[0_0_15px_rgba(129,140,248,0.5)]"
+              />
               <h3 className="pl-2">
                 <span className="block text-xl font-semibold text-gray-100 leading-tight">
                   {shorten(project.path)}
                 </span>
-                <span className="block text-sm font-medium text-gray-400 mt-1 truncate hover:text-clip group-hover:whitespace-normal transition-all duration-300" 
-                      title={project.path}>
+                <span
+                  className="block text-sm font-medium text-gray-400 mt-1 truncate hover:text-clip group-hover:whitespace-normal transition-all duration-300"
+                  title={project.path}
+                >
                   {project.path}
                 </span>
               </h3>
@@ -80,9 +91,11 @@ const ProjectItem = ({ project }: ProjectProps) => {
                   <Icon project_type={variant} key={project.path + variant} />
                 ))}
               </div>
-              <div className="text-sm bg-indigo-500/20 border border-indigo-500/30 
+              <div
+                className="text-sm bg-indigo-500/20 border border-indigo-500/30 
                             px-3.5 py-1.5 rounded-full text-indigo-300 font-medium
-                            shadow-[0_0_10px_rgba(129,140,248,0.2)]">
+                            shadow-[0_0_10px_rgba(129,140,248,0.2)]"
+              >
                 {`${byteSize(project.size)}`}
               </div>
             </div>
