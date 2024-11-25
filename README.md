@@ -6,7 +6,9 @@
 ![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=flat-square&logo=rust&logoColor=white)
 ![Tauri](https://img.shields.io/badge/tauri-%2324C8DB.svg?style=flat-square&logo=tauri&logoColor=%23FFFFFF)
 
-A Tauri app written in Rust + React (TS)
+A Tauri app written in Rust + React (TS
+
+![Preview](./docs/static/img/preview.png)
 
 ## Goal
 
